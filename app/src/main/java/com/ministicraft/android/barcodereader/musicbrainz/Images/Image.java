@@ -1,5 +1,5 @@
 
-package com.google.android.gms.samples.vision.barcodereader.musicbrainz.Images;
+package com.ministicraft.android.barcodereader.musicbrainz.Images;
 
 import java.util.List;
 import com.google.gson.annotations.Expose;
