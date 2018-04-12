@@ -5,22 +5,28 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.widget.TextView;
 
+import com.ministicraft.android.barcodereader.isbndb.Book;
+import com.ministicraft.android.barcodereader.isbndb.RecyclerView.ISBNdbAdapter;
 import com.ministicraft.android.barcodereader.musicbrainz.MusicBrainzRelease;
 import com.ministicraft.android.barcodereader.musicbrainz.RecyclerView.MusicBrainzAdapter;
 
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 
 public class AnalyseActivity extends Activity {
     public static final String Barcode = "Barcode";
-    private TextView barcodeValue;
     private String barcode;
     private RecyclerView mRecyclerView;
-    private MusicBrainzAdapter mAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,10 +37,45 @@ public class AnalyseActivity extends Activity {
         mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         mRecyclerView.setAdapter(new MusicBrainzAdapter());
         barcode = getIntent().getStringExtra(Barcode);
-        barcodeValue = (TextView)findViewById(R.id.barcode_value);
+        if (validateIsbn13(barcode)) {
+            new RetrieveBook().execute(barcode);
+        } else {
+            new RetrieveAlbum().execute(barcode);
+        }
 
-        //barcodeValue.setText(barcode);
-        new RetrieveAlbum().execute(barcode);
+    }
+
+    public boolean validateIsbn13(String isbn) {
+        if (isbn == null) {
+            return false;
+        }
+
+        //remove any hyphens
+        isbn = isbn.replaceAll("-", "");
+
+        //must be a 13 digit ISBN
+        if (isbn.length() != 13) {
+            return false;
+        }
+
+        try {
+            int tot = 0;
+            for (int i = 0; i < 12; i++) {
+                int digit = Integer.parseInt(isbn.substring(i, i + 1));
+                tot += (i % 2 == 0) ? digit * 1 : digit * 3;
+            }
+
+            //checksum must be 0-9. If calculated as 10 then = 0
+            int checksum = 10 - (tot % 10);
+            if (checksum == 10) {
+                checksum = 0;
+            }
+
+            return checksum == Integer.parseInt(isbn.substring(12));
+        } catch (NumberFormatException nfe) {
+            //to catch invalid ISBNs that have non-numeric characters in them
+            return false;
+        }
     }
 
     private class RetrieveAlbum extends AsyncTask<String,Void,String> {
@@ -100,4 +141,49 @@ public class AnalyseActivity extends Activity {
         }
     }
 
+    private class RetrieveBook extends AsyncTask<String, Void, List<Book>> {
+
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+//            findViewById(R.id.progressBar).setVisibility(View.VISIBLE);
+        }
+
+        @Override
+        protected List<Book> doInBackground(String... params) {
+            Book book = new Book(params[0]);
+            List<Book> books = new ArrayList<Book>();
+            try {
+
+                Document doc;
+
+                {
+                    try {
+                        doc = Jsoup.connect("https://isbndb.com/book/" + params[0]).get();
+                        Element bookTtable = doc.getElementsByClass("book-table").first();
+                        String title = bookTtable.child(0).child(0).child(0).child(1).text();
+                        Element artwork = doc.getElementsByClass("artwork").first();
+                        String artwork_url = artwork.child(0).attr("data");
+                        book.setTitle(title);
+                        book.setArtwork(artwork_url);
+                        books.add(book);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            } catch (Exception e) {
+
+            }
+            return books;
+        }
+
+        @Override
+        protected void onPostExecute(List<Book> books) {
+            super.onPostExecute(books);
+            mRecyclerView.setAdapter(new ISBNdbAdapter());
+            ISBNdbAdapter ISBNdbAdapter = (ISBNdbAdapter) mRecyclerView.getAdapter();
+            mRecyclerView.setAdapter(new ISBNdbAdapter(books));
+        }
+    }
 }

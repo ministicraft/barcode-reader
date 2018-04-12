@@ -1,4 +1,4 @@
-package com.ministicraft.android.barcodereader.musicbrainz.RecyclerView;
+package com.ministicraft.android.barcodereader.isbndb.RecyclerView;
 
 import android.support.v7.widget.RecyclerView;
 import android.view.View;
@@ -6,24 +6,25 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.ministicraft.android.barcodereader.R;
-import com.ministicraft.android.barcodereader.musicbrainz.Release;
+import com.ministicraft.android.barcodereader.isbndb.Book;
 import com.squareup.picasso.Picasso;
 
-public class MusicBrainzHolder extends RecyclerView.ViewHolder{
+public class ISBNdbHolder extends RecyclerView.ViewHolder {
 
     public TextView textView;
     public ImageView imageView;
 
-    public MusicBrainzHolder(View itemView) {
+    public ISBNdbHolder(View itemView) {
         super(itemView);
         textView = (TextView) itemView.findViewById(R.id.textView);
         imageView = (ImageView) itemView.findViewById(R.id.imageView);
 
     }
-    public void bind(Release release){
-        textView.setText(release.getArtistCredit().get(0).getArtist().getName() + " - " +release.getTitle());
+
+    public void bind(Book book) {
+        textView.setText(book.getTitle());
         Picasso.get()
-                .load("http://coverartarchive.org/release/"+ release.getId()+"/front/250")
+                .load(book.getArtwork())
                 .placeholder(R.drawable.progress_animation)
                 .error(R.drawable.no_img)
                 .into(imageView);
