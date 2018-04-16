@@ -8,12 +8,12 @@ import android.view.ViewGroup;
 import java.util.List;
 
 import ministicraft.android.barcodereader.R;
-import ministicraft.android.barcodereader.isbndb.Book;
+import ministicraft.android.barcodereader.googlebooks.Item;
 
 public class ISBNdbAdapter extends RecyclerView.Adapter<ISBNdbHolder> {
-    public List<Book> books;
+    public List<Item> books;
 
-    public ISBNdbAdapter(List<Book> books) {
+    public ISBNdbAdapter(List<Item> books) {
         this.books = books;
     }
 
@@ -29,7 +29,7 @@ public class ISBNdbAdapter extends RecyclerView.Adapter<ISBNdbHolder> {
 
     @Override
     public void onBindViewHolder(ISBNdbHolder holder, int position) {
-        Book book = books.get(position);
+        Item book = books.get(position);
         holder.bind(book);
     }
 

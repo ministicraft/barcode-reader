@@ -8,7 +8,7 @@ import android.widget.TextView;
 import com.squareup.picasso.Picasso;
 
 import ministicraft.android.barcodereader.R;
-import ministicraft.android.barcodereader.isbndb.Book;
+import ministicraft.android.barcodereader.googlebooks.Item;
 
 public class ISBNdbHolder extends RecyclerView.ViewHolder {
 
@@ -22,12 +22,20 @@ public class ISBNdbHolder extends RecyclerView.ViewHolder {
 
     }
 
-    public void bind(Book book) {
-        textView.setText(book.getTitle());
-        Picasso.get()
-                .load(book.getArtwork())
-                .placeholder(R.drawable.progress_animation)
-                .error(R.drawable.no_img)
-                .into(imageView);
+    public void bind(Item book) {
+        textView.setText(book.getVolumeInfo().getTitle());
+        if (book.getVolumeInfo().getImageLinks() != null) {
+            Picasso.get()
+                    .load(book.getVolumeInfo().getImageLinks().getSmallThumbnail())
+                    .placeholder(R.drawable.progress_animation)
+                    .error(R.drawable.no_img)
+                    .into(imageView);
+        } else {
+            Picasso.get()
+                    .load(R.drawable.no_img)
+                    .placeholder(R.drawable.progress_animation)
+                    .error(R.drawable.no_img)
+                    .into(imageView);
+        }
     }
 }

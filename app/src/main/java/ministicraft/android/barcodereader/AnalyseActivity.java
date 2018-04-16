@@ -95,7 +95,6 @@ public class AnalyseActivity extends Activity {
             try {
 
                 URL url = new URL("http://musicbrainz.org/ws/2/release/?query=barcode:" + params[0] + "&fmt=json");
-                System.out.println(url.toString());
                 HttpURLConnection connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
                 connection.setConnectTimeout(5000);
@@ -141,7 +140,78 @@ public class AnalyseActivity extends Activity {
         }
     }
 
-    private class RetrieveBook extends AsyncTask<String, Void, List<Book>> {
+    private ministicraft.android.barcodereader.googlebooks.Book isbndb_search(String barcode) {
+        Book book = new Book(barcode);
+        List<Book> books = new ArrayList<Book>();
+        ministicraft.android.barcodereader.googlebooks.Book googlebooks = null;
+        try {
+
+            Document doc;
+
+            {
+                try {
+                    doc = Jsoup.connect("https://isbndb.com/book/" + barcode).get();
+                    Element bookTable = doc.getElementsByClass("book-table").first();
+                    String title = bookTable.child(0).child(0).child(0).child(1).text();
+                    Element artwork = doc.getElementsByClass("artwork").first();
+                    String artwork_url = artwork.child(0).attr("data");
+                    book.setTitle(title);
+                    book.setArtwork(artwork_url);
+                    books.add(book);
+                    googlebooks = new ministicraft.android.barcodereader.googlebooks.Book(book);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        } catch (Exception e) {
+
+        }
+        return googlebooks;
+    }
+
+    private ministicraft.android.barcodereader.googlebooks.Book googlebooks_search(String barcode) {
+        StringBuilder sb = null;
+        BufferedReader reader = null;
+        ministicraft.android.barcodereader.googlebooks.Book googlebooks = null;
+        try {
+
+            URL url = new URL("https://www.googleapis.com/books/v1/volumes?q=" + barcode);
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+            connection.setConnectTimeout(5000);
+            connection.setRequestMethod("GET");
+            connection.connect();
+            int statusCode = connection.getResponseCode();
+            //Log.e("statusCode", "" + statusCode);
+            if (statusCode == 200) {
+                sb = new StringBuilder();
+                reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    sb.append(line + "\n");
+                }
+            }
+
+            connection.disconnect();
+            if (sb != null) {
+                System.out.println(sb.toString());
+                googlebooks = ministicraft.android.barcodereader.googlebooks.Book.fromJson(sb.toString());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (reader != null) {
+                try {
+                    reader.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return googlebooks;
+    }
+
+    private class RetrieveBook extends AsyncTask<String, Void, ministicraft.android.barcodereader.googlebooks.Book> {
 
 
         @Override
@@ -151,39 +221,24 @@ public class AnalyseActivity extends Activity {
         }
 
         @Override
-        protected List<Book> doInBackground(String... params) {
-            Book book = new Book(params[0]);
-            List<Book> books = new ArrayList<Book>();
+        protected ministicraft.android.barcodereader.googlebooks.Book doInBackground(String... params) {
+            ministicraft.android.barcodereader.googlebooks.Book googlebooks = null;
             try {
-
-                Document doc;
-
-                {
-                    try {
-                        doc = Jsoup.connect("https://isbndb.com/book/" + params[0]).get();
-                        Element bookTtable = doc.getElementsByClass("book-table").first();
-                        String title = bookTtable.child(0).child(0).child(0).child(1).text();
-                        Element artwork = doc.getElementsByClass("artwork").first();
-                        String artwork_url = artwork.child(0).attr("data");
-                        book.setTitle(title);
-                        book.setArtwork(artwork_url);
-                        books.add(book);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
+                googlebooks = googlebooks_search(params[0]);
+                if (googlebooks.getTotalItems() == 0) {
+                    googlebooks = isbndb_search(params[0]);
                 }
             } catch (Exception e) {
-
             }
-            return books;
+            return googlebooks;
         }
 
         @Override
-        protected void onPostExecute(List<Book> books) {
-            super.onPostExecute(books);
+        protected void onPostExecute(ministicraft.android.barcodereader.googlebooks.Book googlebooks) {
+            super.onPostExecute(googlebooks);
             mRecyclerView.setAdapter(new ISBNdbAdapter());
             ISBNdbAdapter ISBNdbAdapter = (ISBNdbAdapter) mRecyclerView.getAdapter();
-            mRecyclerView.setAdapter(new ISBNdbAdapter(books));
+            mRecyclerView.setAdapter(new ISBNdbAdapter(googlebooks.getItems()));
         }
     }
 }
