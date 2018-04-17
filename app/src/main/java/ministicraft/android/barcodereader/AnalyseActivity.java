@@ -194,7 +194,6 @@ public class AnalyseActivity extends Activity {
 
             connection.disconnect();
             if (sb != null) {
-                System.out.println(sb.toString());
                 googlebooks = ministicraft.android.barcodereader.googlebooks.Book.fromJson(sb.toString());
             }
         } catch (Exception e) {
